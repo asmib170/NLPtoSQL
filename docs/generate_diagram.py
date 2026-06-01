@@ -1,4 +1,4 @@
-"""Generate architecture diagram using Graphviz."""
+"""Generate updated architecture diagram using Graphviz."""
 
 import sys
 import os
@@ -7,88 +7,113 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '.venv', 'Lib',
 from graphviz import Digraph
 
 dot = Digraph('NLP-to-SQL Architecture', format='png')
-dot.attr(rankdir='LR', dpi='150', bgcolor='white', fontname='Helvetica')
-dot.attr('node', fontname='Helvetica', fontsize='11')
-dot.attr('edge', fontname='Helvetica', fontsize='9')
+dot.attr(rankdir='TB', dpi='150', bgcolor='white', fontname='Helvetica')
+dot.attr('node', fontname='Helvetica', fontsize='10')
+dot.attr('edge', fontname='Helvetica', fontsize='8')
+
+# --- User ---
+dot.node('user', '👤 User\n(Browser)', shape='none', fontsize='12')
 
 # --- Local Laptop cluster ---
 with dot.subgraph(name='cluster_local') as local:
     local.attr(label='Local Laptop', style='dashed', color='#6366f1',
-               fontcolor='#6366f1', fontsize='13', fontname='Helvetica-Bold')
+               fontcolor='#6366f1', fontsize='12', fontname='Helvetica-Bold')
 
     # React App
     with local.subgraph(name='cluster_react') as react:
-        react.attr(label='React Web App\n(localhost:3000)', style='rounded,filled',
-                   color='#3b82f6', fillcolor='#eff6ff', fontsize='11')
-        react.node('chat_window', 'Chat Window\n(Markdown + Tables)', shape='box',
+        react.attr(label='React Web App (port 3000)', style='rounded,filled',
+                   color='#3b82f6', fillcolor='#eff6ff', fontsize='10')
+        react.node('chat_ui', 'Chat UI\n(Markdown + Tables\n+ Charts)', shape='box',
                    style='rounded,filled', fillcolor='#dbeafe', color='#3b82f6')
-        react.node('input_bar', 'Input Bar\n(question + session_id)', shape='box',
+        react.node('whisper', 'Whisper STT\n(In-Browser)', shape='box',
                    style='rounded,filled', fillcolor='#dbeafe', color='#3b82f6')
-        react.node('sidebar', 'Sidebar\n(Chat History)', shape='box',
+        react.node('sidebar', 'Sidebar\n(History + Input)', shape='box',
+                   style='rounded,filled', fillcolor='#dbeafe', color='#3b82f6')
+        react.node('export', 'Export\n(HTML/MD + Charts)', shape='box',
                    style='rounded,filled', fillcolor='#dbeafe', color='#3b82f6')
 
     # FastAPI Server
     with local.subgraph(name='cluster_fastapi') as api:
-        api.attr(label='FastAPI Server\n(localhost:8000)', style='rounded,filled',
-                 color='#10b981', fillcolor='#ecfdf5', fontsize='11')
-        api.node('sse_gen', 'SSE Generator\n(streaming)', shape='box',
+        api.attr(label='FastAPI Server (port 8000)', style='rounded,filled',
+                 color='#10b981', fillcolor='#ecfdf5', fontsize='10')
+        api.node('routes', 'Routes\n(/chat /threads\n/context /charts)', shape='box',
                  style='rounded,filled', fillcolor='#d1fae5', color='#10b981')
-        api.node('session_mgr', 'Session Manager\n(FileSessionManager)', shape='box',
+        api.node('session_mgr', 'Session Factory\n(FileSessionManager)', shape='box',
+                 style='rounded,filled', fillcolor='#d1fae5', color='#10b981')
+        api.node('config', 'Config Provider\n(dev.json / AWS)', shape='box',
                  style='rounded,filled', fillcolor='#d1fae5', color='#10b981')
 
     # Strands Agent
     with local.subgraph(name='cluster_agent') as agent:
-        agent.attr(label='Strands Agent\n(with Extended Thinking)', style='rounded,filled',
-                   color='#f59e0b', fillcolor='#fffbeb', fontsize='11')
-        agent.node('tool1', 'verify_question\n(schema check)', shape='box',
+        agent.attr(label='Strands Agent (Extended Thinking)', style='rounded,filled',
+                   color='#f59e0b', fillcolor='#fffbeb', fontsize='10')
+        agent.node('tool1', '1. verify_question', shape='box',
                    style='rounded,filled', fillcolor='#fef3c7', color='#f59e0b')
-        agent.node('tool2', 'generate_sql\n(NL → SQL)', shape='box',
+        agent.node('tool2', '2. generate_sql', shape='box',
                    style='rounded,filled', fillcolor='#fef3c7', color='#f59e0b')
-        agent.node('tool3', 'execute_sql\n(run SELECT)', shape='box',
+        agent.node('tool3', '3. execute_sql\n(read-only)', shape='box',
                    style='rounded,filled', fillcolor='#fef3c7', color='#f59e0b')
-        agent.node('tool4', 'summarize_results\n(insights + trends)', shape='box',
+        agent.node('tool4', '4. summarize_results', shape='box',
+                   style='rounded,filled', fillcolor='#fef3c7', color='#f59e0b')
+        agent.node('tool5', '5. generate_chart\n(matplotlib)', shape='box',
                    style='rounded,filled', fillcolor='#fef3c7', color='#f59e0b')
 
-    # SQLite DB
-    local.node('sqlite', 'SQLite\nDemoECommerceDB\n(9 tables)', shape='cylinder',
-               style='filled', fillcolor='#f3e8ff', color='#8b5cf6')
+    # Storage
+    with local.subgraph(name='cluster_storage') as storage:
+        storage.attr(label='Storage Layer', style='rounded,filled',
+                     color='#8b5cf6', fillcolor='#f5f3ff', fontsize='10')
+        storage.node('sqlite', 'SQLite DB\n(9 tables)', shape='cylinder',
+                     style='filled', fillcolor='#ede9fe', color='#8b5cf6')
+        storage.node('sessions', 'Sessions\n(conversation\nmemory)', shape='folder',
+                     style='filled', fillcolor='#ede9fe', color='#8b5cf6')
+        storage.node('threads', 'Thread Index\n(metadata)', shape='folder',
+                     style='filled', fillcolor='#ede9fe', color='#8b5cf6')
+        storage.node('charts', 'Charts\n(PNG files)', shape='folder',
+                     style='filled', fillcolor='#ede9fe', color='#8b5cf6')
 
-    # Session Storage
-    local.node('storage', 'Session Storage\n(JSON files)', shape='folder',
-               style='filled', fillcolor='#f1f5f9', color='#64748b')
-
-# --- AWS Cloud cluster ---
+# --- AWS Cloud ---
 with dot.subgraph(name='cluster_aws') as aws:
     aws.attr(label='AWS Cloud', style='dashed', color='#f97316',
-             fontcolor='#f97316', fontsize='13', fontname='Helvetica-Bold')
-    aws.node('bedrock', 'Amazon Bedrock\n\nClaude Sonnet 4.5\n(Thinking + Tool Use\n+ Streaming)',
+             fontcolor='#f97316', fontsize='12', fontname='Helvetica-Bold')
+    aws.node('bedrock', 'Amazon Bedrock\n\nClaude Sonnet 4.5\n• Extended Thinking\n• Tool Use\n• Streaming',
              shape='box3d', style='filled', fillcolor='#fff7ed', color='#f97316')
 
-# --- User ---
-dot.node('user', '👤 User', shape='none', fontsize='14')
+# --- Edges: User → Frontend ---
+dot.edge('user', 'chat_ui', label='questions\n(text/voice)', color='#6b7280')
+dot.edge('user', 'whisper', label='voice', color='#6b7280', style='dashed')
+dot.edge('whisper', 'chat_ui', label='transcript', color='#6b7280', style='dashed')
 
-# --- Edges ---
-dot.edge('user', 'input_bar', label='types question', color='#6b7280')
-dot.edge('input_bar', 'sse_gen', label='POST /api/chat\n{message, thread_id}',
-         color='#3b82f6', style='bold')
-dot.edge('sse_gen', 'chat_window', label='SSE stream\n(tokens, thinking,\ntools, metrics)',
-         color='#10b981', style='bold')
-dot.edge('sidebar', 'sse_gen', label='GET /api/threads', color='#6b7280', style='dashed')
+# --- Frontend → Backend ---
+dot.edge('chat_ui', 'routes', label='POST /api/chat\n(SSE stream)', color='#3b82f6', style='bold')
+dot.edge('routes', 'chat_ui', label='tokens +\nthinking +\nmetrics', color='#10b981', style='bold')
+dot.edge('sidebar', 'routes', label='GET/POST\n/api/threads', color='#6b7280', style='dashed')
+dot.edge('export', 'routes', label='GET\n/api/charts/*', color='#6b7280', style='dashed')
 
-dot.edge('sse_gen', 'session_mgr', label='load/save\nsession', color='#64748b')
-dot.edge('session_mgr', 'storage', color='#64748b', style='dashed')
+# --- Backend → Agent ---
+dot.edge('routes', 'session_mgr', color='#10b981')
+dot.edge('session_mgr', 'tool1', label='session\nloaded', color='#f59e0b')
 
-dot.edge('sse_gen', 'tool1', label='Step 1', color='#f59e0b')
-dot.edge('tool1', 'tool2', label='Step 2', color='#f59e0b')
-dot.edge('tool2', 'tool3', label='Step 3', color='#f59e0b')
-dot.edge('tool3', 'tool4', label='Step 4', color='#f59e0b')
+# --- Agent tool flow ---
+dot.edge('tool1', 'tool2', color='#f59e0b')
+dot.edge('tool2', 'tool3', color='#f59e0b')
+dot.edge('tool3', 'tool4', label='parallel', color='#f59e0b')
+dot.edge('tool3', 'tool5', label='parallel', color='#f59e0b')
 
-dot.edge('tool3', 'sqlite', label='SQL query', color='#8b5cf6', style='bold')
-dot.edge('tool1', 'sqlite', label='schema\ninspect', color='#8b5cf6', style='dashed')
+# --- Agent → Storage ---
+dot.edge('tool1', 'sqlite', label='schema', color='#8b5cf6', style='dashed')
+dot.edge('tool3', 'sqlite', label='SELECT', color='#8b5cf6', style='bold')
+dot.edge('tool5', 'charts', label='save PNG', color='#8b5cf6')
+dot.edge('session_mgr', 'sessions', color='#8b5cf6', style='dashed')
+dot.edge('routes', 'threads', color='#8b5cf6', style='dashed')
 
-dot.edge('tool1', 'bedrock', label='LLM call', color='#f97316', style='bold')
-dot.edge('tool2', 'bedrock', label='LLM call', color='#f97316', style='bold')
-dot.edge('tool4', 'bedrock', label='LLM call', color='#f97316', style='bold')
+# --- Agent → AWS Bedrock ---
+dot.edge('tool1', 'bedrock', label='LLM', color='#f97316', style='bold')
+dot.edge('tool2', 'bedrock', label='LLM', color='#f97316', style='bold')
+dot.edge('tool4', 'bedrock', label='LLM', color='#f97316', style='bold')
+dot.edge('tool5', 'bedrock', label='LLM\n(code gen)', color='#f97316', style='bold')
+
+# --- Config ---
+dot.edge('config', 'routes', color='#6b7280', style='dotted')
 
 # Render
 output_path = os.path.join(os.path.dirname(__file__), 'architecture')

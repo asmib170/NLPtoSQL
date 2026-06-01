@@ -13,6 +13,8 @@ An AI-powered conversational interface that lets users query databases using nat
 
 ## Architecture
 
+![Architecture Diagram](docs/architecture.png)
+
 ```
 React (Vite + TypeScript)  ←→  FastAPI (SSE streaming)  ←→  Strands Agent  ←→  AWS Bedrock (Claude Sonnet 4.5)
                                                                     ↓
