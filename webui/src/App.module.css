@@ -1,0 +1,34 @@
+/* ------------------------------------------------------------------ */
+/* Layout                                                               */
+/* ------------------------------------------------------------------ */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: background 0.2s, color 0.2s;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.resizeHandle {
+  width: 4px;
+  cursor: col-resize;
+  background: var(--border);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.resizeHandle:hover {
+  background: var(--accent);
+}
+
+.resizeHandle:active {
+  background: var(--accent);
+}

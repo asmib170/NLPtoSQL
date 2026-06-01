@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Node
+webui/node_modules/
+webui/dist/
+
+# Runtime data
+agent/data/sessions/
+agent/data/threads/
+agent/data/charts/
+
+# Database
+prereq/*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+*.env.local
+
+# UV
+uv.lock

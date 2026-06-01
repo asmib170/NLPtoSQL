@@ -1,0 +1,225 @@
+.container {
+  padding: 1rem 1.25rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 100%;
+  margin: 0 auto;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 0.75rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.inner:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.textarea {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 36px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.sendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, opacity 0.15s, transform 0.1s;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+.sendBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stopBtn {
+  background: #ef4444;
+}
+
+.stopBtn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  margin: 0.4rem auto 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.typingDots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.typingDots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typingDots span:nth-child(1) { animation-delay: 0s; }
+.typingDots span:nth-child(2) { animation-delay: 0.16s; }
+.typingDots span:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.hint {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.4rem;
+}
+
+
+/* Mic button */
+.micBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.micBtn:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.micBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.micActive {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+
+/* Waveform area */
+.waveformArea {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.duration {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* Model loading */
+.modelLoading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  border-radius: 8px;
+}
+
+.progressBar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  max-width: 120px;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Speech error */
+.speechError {
+  font-size: 0.72rem;
+  color: #ef4444;
+  padding: 0.25rem 0;
+}

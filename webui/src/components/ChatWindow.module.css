@@ -1,0 +1,138 @@
+.main {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 2rem;
+}
+
+.messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+/* Empty state */
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.emptyTitle {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.emptySubtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  max-width: 500px;
+  line-height: 1.5;
+}
+
+/* Suggestions grid */
+.suggestions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+  max-width: 700px;
+  width: 90%;
+}
+
+.suggestion {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+
+.suggestion:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.suggestion:active {
+  transform: scale(0.97);
+}
+
+/* Loading state */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  width: 90%;
+  max-width: 700px;
+}
+
+.loadingPulse {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.sparkle {
+  color: var(--accent);
+  animation: spin 3s linear infinite;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.skeletonPill {
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-raised) 25%,
+    var(--hover) 50%,
+    var(--surface-raised) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
