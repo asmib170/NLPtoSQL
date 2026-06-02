@@ -29,7 +29,7 @@ if not IS_WINDOWS:
         pass  # Fallback to subprocess
 
 # Directory to store generated charts — from central config
-from utils import CHARTS_DIR as _CHARTS_DIR_STR, CHART_MODEL_MAX_TOKENS, VENV_PYTHON
+from utils import CHARTS_DIR as _CHARTS_DIR_STR, CHART_MODEL_ID, CHART_MODEL_MAX_TOKENS, VENV_PYTHON, CHART_SUBPROCESS_TIMEOUT, CHART_MIN_ROWS
 CHART_DIR = Path(_CHARTS_DIR_STR)
 
 # Chart storage instance — swap to S3ChartStorage for production
@@ -38,7 +38,7 @@ chart_storage = LocalChartStorage(str(CHART_DIR))
 
 # Use the same model for chart code generation
 _chart_model = BedrockModel(
-    model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    model_id=CHART_MODEL_ID,
     max_tokens=CHART_MODEL_MAX_TOKENS,
 )
 

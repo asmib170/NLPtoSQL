@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from utils import TITLE_MAX_WORDS, SUMMARY_MAX_WORDS, SESSIONS_DIR
+from utils import TITLE_MAX_WORDS, SUMMARY_MAX_WORDS, SESSIONS_DIR, TITLE_GEN_MAX_TOKENS
 from utils import converse_json
 from storage import JsonFileThreadIndex, ThreadMeta
 
@@ -182,7 +182,7 @@ def generate_title(request: GenerateTitleRequest) -> dict:
         f'"summary": "<{SUMMARY_MAX_WORDS} words max>"}}'
     )
 
-    result = converse_json(prompt, system_prompt, max_tokens=256)
+    result = converse_json(prompt, system_prompt, max_tokens=TITLE_GEN_MAX_TOKENS)
     if result:
         return {
             "title": result.get("title", "Chat"),

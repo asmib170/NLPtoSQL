@@ -1,23 +1,55 @@
 {
+  "_comment_model": "LLM model configuration — used for the main agent and chart generation",
   "MODEL_ID": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
   "MODEL_MAX_TOKENS": 8192,
   "THINKING_BUDGET_TOKENS": 4096,
   "CHART_MODEL_MAX_TOKENS": 4096,
 
-  "SESSION_BACKEND": "agentcore",
-  "AGENTCORE_MEMORY_ID": "your-memory-id-here",
-  "AWS_REGION": "us-east-1",
+  "_comment_database": "Path to the SQLite database file — absolute path or relative to project root",
+  "DB_PATH": "/opt/app/data/production.db",
 
+  "_comment_session": "Session management — 'agentcore' uses AWS AgentCore Memory for production",
+  "SESSION_BACKEND": "agentcore",
+  "SESSIONS_DIR": "/opt/app/data/sessions",
+  "AGENTCORE_MEMORY_ID": "your-agentcore-memory-id-here",
+  "AWS_REGION": "us-west-2",
+
+  "_comment_storage": "Storage paths — in production these may be on EFS or replaced by S3",
+  "THREADS_DIR": "/opt/app/data/threads",
+  "CHARTS_DIR": "/opt/app/data/charts",
+
+  "_comment_display": "Query result display limits, thread title generation, and sample questions count",
   "MAX_DISPLAY_ROWS": 50,
+  "SAMPLE_QUESTIONS_COUNT": 6,
   "TITLE_MAX_WORDS": 6,
   "SUMMARY_MAX_WORDS": 25,
-  "DATA_TTL_DAYS": 30,
+  "TITLE_GEN_MAX_TOKENS": 256,
+  "CONTEXT_GEN_MAX_TOKENS": 1024,
 
+  "_comment_cleanup": "TTL in days — sessions, threads, and charts older than this are auto-deleted on server startup",
+  "DATA_TTL_DAYS": 90,
+
+  "_comment_pricing": "Per-token pricing for cost estimation (USD) — update when model pricing changes",
+  "PRICING_INPUT_PER_TOKEN": 0.000003,
+  "PRICING_OUTPUT_PER_TOKEN": 0.000015,
+
+  "_comment_chart": "Chart generation settings — colors, DPI, timeouts, minimum data requirements",
+  "CHART_MODEL_ID": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+  "CHART_BG_COLOR": "#1a2332",
+  "CHART_TEXT_COLOR": "#ecf0f1",
+  "CHART_COLOR_PALETTE": ["#818cf8", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#22d3ee"],
+  "CHART_DPI": 150,
+  "CHART_SUBPROCESS_TIMEOUT": 60,
+  "CHART_MIN_ROWS": 2,
+
+  "_comment_server": "Server settings — in production, host on 0.0.0.0 behind a load balancer with restricted CORS",
   "SERVER_HOST": "0.0.0.0",
   "SERVER_PORT": 8000,
-  "CORS_ORIGINS": ["https://your-domain.com"],
+  "FRONTEND_PORT": 443,
+  "CORS_ORIGINS": ["https://your-app-domain.com", "https://www.your-app-domain.com"],
 
+  "_comment_chart_storage": "S3 chart storage settings (when using S3ChartStorage in production)",
   "CHART_STORAGE": "s3",
   "CHART_S3_BUCKET": "your-charts-bucket",
-  "CHART_CLOUDFRONT_DOMAIN": "d1234.cloudfront.net"
+  "CHART_CLOUDFRONT_DOMAIN": "d1234abcdef.cloudfront.net"
 }

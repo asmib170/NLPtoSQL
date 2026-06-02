@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from utils.session_factory import get_agent_for_session
+from utils import MODEL_ID, PRICING_INPUT_PER_TOKEN, PRICING_OUTPUT_PER_TOKEN
 
 router = APIRouter(prefix="/api")
 
@@ -89,7 +90,7 @@ async def _sse_generator(message: str, thread_id: str) -> AsyncIterator[str]:
         ttft = (first_token_time - start_time) if first_token_time else None
 
         metrics_data = {
-            "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "model": MODEL_ID,
             "ttft_ms": round(ttft * 1000) if ttft else None,
             "latency_ms": round(total_time * 1000),
         }
@@ -102,8 +103,8 @@ async def _sse_generator(message: str, thread_id: str) -> AsyncIterator[str]:
             metrics_data["cache_read_tokens"] = usage.get("cacheReadInputTokens", 0)
             metrics_data["cache_write_tokens"] = usage.get("cacheWriteInputTokens", 0)
 
-            input_cost = metrics_data["input_tokens"] * 0.000003
-            output_cost = metrics_data["output_tokens"] * 0.000015
+            input_cost = metrics_data["input_tokens"] * PRICING_INPUT_PER_TOKEN
+            output_cost = metrics_data["output_tokens"] * PRICING_OUTPUT_PER_TOKEN
             metrics_data["estimated_cost_usd"] = round(input_cost + output_cost, 6)
 
         yield f"data: [METRICS] {json.dumps(metrics_data)}\n\n"

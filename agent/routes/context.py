@@ -5,7 +5,7 @@ import os
 from fastapi import APIRouter
 
 from tools.db_inspector import get_table_names, get_schema_as_text, DEFAULT_DB_PATH
-from utils import converse_json
+from utils import converse_json, SAMPLE_QUESTIONS_COUNT, CONTEXT_GEN_MAX_TOKENS
 
 router = APIRouter(prefix="/api")
 
@@ -24,7 +24,7 @@ def _generate_ui_context() -> dict:
 
     system_prompt = "You are a helpful assistant. Respond only with valid JSON, no markdown."
 
-    prompt = f"""Given the following SQLite database schema, generate exactly 6 sample questions 
+    prompt = f"""Given the following SQLite database schema, generate exactly {SAMPLE_QUESTIONS_COUNT} sample questions 
 that a business user might ask about this data. Also generate a one-line description of what 
 this database contains.
 
@@ -51,10 +51,10 @@ Rules for the questions:
 - They should span different tables in the schema
 """
 
-    result = converse_json(prompt, system_prompt, max_tokens=1024)
+    result = converse_json(prompt, system_prompt, max_tokens=CONTEXT_GEN_MAX_TOKENS)
     if result:
         description = result.get("description", f"Query the {db_name} database and explore your data.")
-        questions = result.get("questions", [])[:6]
+        questions = result.get("questions", [])[:SAMPLE_QUESTIONS_COUNT]
     else:
         description = f"Query the {db_name} database ({len(tables)} tables) and explore your data."
         questions = [
