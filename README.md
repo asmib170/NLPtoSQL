@@ -1,6 +1,6 @@
 # NLP-to-SQL — AI Data Assistant
 
-An AI-powered conversational interface that lets users query databases using natural language. Ask questions in plain English, get SQL queries, tabular results, charts, and intelligent insights — all through a modern chat UI.
+An AI-powered conversational interface that lets users query databases using natural language. Ask questions in plain English, get SQL queries, tabular results, charts, and intelligent insights, all through a modern chat UI.
 
 ## What It Does
 
@@ -11,7 +11,7 @@ This project is a **database-agnostic** AI assistant. While this v1 ships with a
 - Answers any natural language question about YOUR data
 
 **Core capabilities:**
-- **Natural language to SQL**: Ask questions like "Which customers spent the most last quarter?" — the agent verifies the question is answerable, generates SQL, executes it, and returns results with analysis
+- **Natural language to SQL**: Ask questions like "Which customers spent the most last quarter?". The agent verifies the question is answerable, generates SQL, executes it, and returns results with analysis
 - **Automated chart generation**: Produces matplotlib visualizations alongside every query result
 - **Conversation memory**: Multi-turn conversations where the agent remembers context within a session
 - **Intelligent summaries**: Highlights trends, outliers, and suggests follow-up questions
@@ -75,7 +75,7 @@ Before running this project, you need the following set up on your machine:
 
 ### 4. AWS Account with Bedrock Access
 
-This is the most important prerequisite — the AI agent uses Amazon Bedrock to access Claude Sonnet 4.5.
+This is the most important prerequisite. The AI agent uses Amazon Bedrock to access Claude Sonnet 4.5.
 
 **Step-by-step:**
 
@@ -104,7 +104,7 @@ This is the most important prerequisite — the AI agent uses Amazon Bedrock to 
    Enter:
    - AWS Access Key ID: `<your key>`
    - AWS Secret Access Key: `<your secret>`
-   - Default region: `us-east-1` (or any region where Bedrock + Claude is available)
+   - Default region: `us-west-2` (or any region where Bedrock + Claude is available)
    - Default output format: `json`
 
 5. **Verify Bedrock access**:
@@ -150,7 +150,7 @@ This starts:
 
 To point the agent at a different SQLite database:
 1. Edit `agent/utils/config_files/dev.json`
-2. The `DB_PATH` is automatically resolved from the project root — or set it as an absolute path
+2. The `DB_PATH` is automatically resolved from the project root or set it as an absolute path
 3. Restart the backend — the agent reads the new schema and generates appropriate sample questions
 
 Opens at [http://localhost:3000](http://localhost:3000) with backend on port 8000.
