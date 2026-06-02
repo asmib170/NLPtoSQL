@@ -4,12 +4,27 @@ An AI-powered conversational interface that lets users query databases using nat
 
 ## What It Does
 
-- **Natural language to SQL**: Ask "Which customers spent the most last quarter?" and get the SQL, results, and analysis
+This project is a **database-agnostic** AI assistant. While this v1 ships with a demo e-commerce SQLite database, it works with **any SQLite database** you point it to. Simply replace the database file path in the config and the system automatically:
+
+- Reads the schema dynamically (tables, columns, relationships)
+- Generates 6 relevant sample questions based on YOUR schema using the LLM
+- Answers any natural language question about YOUR data
+
+**Core capabilities:**
+- **Natural language to SQL**: Ask questions like "Which customers spent the most last quarter?" — the agent verifies the question is answerable, generates SQL, executes it, and returns results with analysis
 - **Automated chart generation**: Produces matplotlib visualizations alongside every query result
 - **Conversation memory**: Multi-turn conversations where the agent remembers context within a session
 - **Intelligent summaries**: Highlights trends, outliers, and suggests follow-up questions
 - **Voice input**: Speak your questions using in-browser Whisper speech-to-text (no server needed)
 - **Export**: Download responses or full conversations as HTML or Markdown with embedded charts
+
+### Connecting Your Own Database
+
+1. Place your SQLite `.db` file anywhere on your machine
+2. Update `agent/utils/config_files/dev.json` — no code changes needed, OR update the `DB_PATH` in the config
+3. Restart the server — the agent reads the schema at startup and adapts automatically
+
+The welcome screen will show 6 LLM-generated sample questions based on your schema, and the agent will query your tables.
 
 ## Architecture
 
@@ -42,22 +57,101 @@ React (Vite + TypeScript)  ←→  FastAPI (SSE streaming)  ←→  Strands Agen
 | Config management | JSON config files (dev) → AWS AppConfig (prod) |
 | TTL cleanup | Auto-deletes old sessions, threads, and charts |
 
+## Prerequisites
+
+Before running this project, you need the following set up on your machine:
+
+### 1. Python 3.11+
+- Download from [python.org](https://www.python.org/downloads/) or install via your package manager
+- Verify: `python --version`
+
+### 2. uv (Python package manager)
+- Install: `pip install uv` or via [installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+- Verify: `uv --version`
+
+### 3. Node.js 20+ and npm
+- Download from [nodejs.org](https://nodejs.org/) (LTS version recommended)
+- Verify: `node --version` and `npm --version`
+
+### 4. AWS Account with Bedrock Access
+
+This is the most important prerequisite — the AI agent uses Amazon Bedrock to access Claude Sonnet 4.5.
+
+**Step-by-step:**
+
+1. **Create an AWS Account** (if you don't have one): [aws.amazon.com](https://aws.amazon.com/)
+
+2. **Enable Claude Sonnet 4.5 in Amazon Bedrock**:
+   - Go to the [AWS Console](https://console.aws.amazon.com/)
+   - Navigate to **Amazon Bedrock** → **Model access** (in the left menu)
+   - Click **Manage model access**
+   - Check **Anthropic → Claude Sonnet 4.5** (model ID: `us.anthropic.claude-sonnet-4-5-20250929-v1:0`)
+   - Click **Save changes** and wait for access to be granted (usually instant)
+
+3. **Create an IAM User with Bedrock permissions**:
+   - Go to **IAM** → **Users** → **Create user**
+   - Attach the policy: `AmazonBedrockFullAccess` (or a custom policy with `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`)
+   - Create an **Access Key** (Security credentials → Create access key → CLI use case)
+   - Save the **Access Key ID** and **Secret Access Key**
+
+4. **Install and configure AWS CLI**:
+   ```bash
+   # Install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+   
+   # Configure with your credentials:
+   aws configure
+   ```
+   Enter:
+   - AWS Access Key ID: `<your key>`
+   - AWS Secret Access Key: `<your secret>`
+   - Default region: `us-east-1` (or any region where Bedrock + Claude is available)
+   - Default output format: `json`
+
+5. **Verify Bedrock access**:
+   ```bash
+   aws bedrock list-foundation-models --query "modelSummaries[?contains(modelId, 'claude')]" --output table
+   ```
+   You should see Claude models listed.
+
+### 5. (Optional) Graphviz — for regenerating the architecture diagram
+- Download from [graphviz.org](https://graphviz.org/download/)
+- Only needed if you want to regenerate `docs/architecture.png`
+
+---
+
 ## Quick Start
 
 ```bash
-# Prerequisites: Python 3.11+, Node.js 20+, AWS CLI configured
+# 1. Clone the repo
+git clone https://github.com/asmib170/NLPtoSQL.git
+cd NLPtoSQL
 
-# 1. Setup
-uv venv && uv pip install -r requirements.txt
+# 2. Create virtual environment and install Python dependencies
+uv venv
+uv pip install -r requirements.txt
+
+# 3. Install frontend dependencies
 cd webui && npm install && cd ..
 
-# 2. Create the database
+# 4. Create and populate the demo database
 python prereq/01_create_db.py
 python prereq/02_populate_db.py
 
-# 3. Run (or just double-click start.bat)
+# 5. Run everything (or just double-click start.bat on Windows)
 start.bat
 ```
+
+This starts:
+- **Backend** on `http://localhost:8000` (FastAPI + Strands Agent)
+- **Frontend** on `http://localhost:3000` (React chat UI)
+- Opens your browser automatically
+
+### Using Your Own Database
+
+To point the agent at a different SQLite database:
+1. Edit `agent/utils/config_files/dev.json`
+2. The `DB_PATH` is automatically resolved from the project root — or set it as an absolute path
+3. Restart the backend — the agent reads the new schema and generates appropriate sample questions
 
 Opens at [http://localhost:3000](http://localhost:3000) with backend on port 8000.
 
