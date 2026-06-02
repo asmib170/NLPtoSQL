@@ -30,3 +30,6 @@ Thumbs.db
 
 # UV
 uv.lock
+
+# Personal logs
+docs/daily_activity_log.md
