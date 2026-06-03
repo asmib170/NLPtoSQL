@@ -6,8 +6,14 @@ Write-Host ""
 # Activate venv
 & "$PSScriptRoot\.venv\Scripts\Activate.ps1"
 
+# Kill any stale processes on ports 8000 and 3000
+Write-Host "[1/4] Freeing ports 8000 and 3000..." -ForegroundColor Yellow
+Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+Write-Host "      Ports cleared."
+
 # Install frontend deps if needed
-Write-Host "[1/3] Checking frontend dependencies..." -ForegroundColor Yellow
+Write-Host "[2/4] Checking frontend dependencies..." -ForegroundColor Yellow
 if (-not (Test-Path "$PSScriptRoot\webui\node_modules")) {
     Write-Host "      Installing npm packages..."
     Push-Location "$PSScriptRoot\webui"
@@ -16,7 +22,7 @@ if (-not (Test-Path "$PSScriptRoot\webui\node_modules")) {
 }
 
 # Start backend in a new window
-Write-Host "[2/3] Starting Python backend (port 8000)..." -ForegroundColor Yellow
+Write-Host "[3/4] Starting Python backend (port 8000)..." -ForegroundColor Yellow
 Start-Process -FilePath "cmd.exe" -ArgumentList "/k", "cd /d $PSScriptRoot\agent && $PSScriptRoot\.venv\Scripts\python.exe server.py" -WindowStyle Normal
 
 # Wait for backend
@@ -24,7 +30,7 @@ Write-Host "      Waiting for backend to start..."
 Start-Sleep -Seconds 4
 
 # Start frontend in a new window
-Write-Host "[3/3] Starting React frontend (port 3000)..." -ForegroundColor Yellow
+Write-Host "[4/4] Starting React frontend (port 3000)..." -ForegroundColor Yellow
 Start-Process -FilePath "cmd.exe" -ArgumentList "/k", "cd /d $PSScriptRoot\webui && npm run dev" -WindowStyle Normal
 
 Start-Sleep -Seconds 3

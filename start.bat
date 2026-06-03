@@ -30,8 +30,18 @@ if not exist "%~dp0prereq\DemoECommerceDB.db" (
     echo      Database already exists.
 )
 
+:: ---- Kill stale processes on ports 8000 and 3000 ----
+echo [2/6] Freeing ports 8000 and 3000...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8000.*LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000.*LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+echo      Ports cleared.
+
 :: ---- Frontend dependencies ----
-echo [2/5] Checking frontend dependencies...
+echo [3/6] Checking frontend dependencies...
 cd /d "%~dp0webui"
 if not exist node_modules (
     echo      Installing npm packages...
@@ -42,15 +52,15 @@ if not exist node_modules (
 cd /d "%~dp0"
 
 :: ---- Start backend ----
-echo [3/5] Starting Python backend (port 8000)...
+echo [4/6] Starting Python backend (port 8000)...
 start "NLPtoSQL-Backend" cmd /k "cd /d %~dp0agent && %~dp0.venv\Scripts\python.exe server.py"
 
 :: Wait for backend to be ready
-echo [4/5] Waiting for backend to start...
+echo [5/6] Waiting for backend to start...
 timeout /t 5 /nobreak >nul
 
 :: ---- Start frontend ----
-echo [5/5] Starting React frontend (port 3000)...
+echo [6/6] Starting React frontend (port 3000)...
 start "NLPtoSQL-Frontend" cmd /k "cd /d %~dp0webui && npm run dev"
 
 :: Wait a moment then open browser
