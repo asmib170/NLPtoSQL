@@ -31,7 +31,11 @@ class SqliteAdapter(DatabaseAdapter):
         """Open a read-only connection to the SQLite database."""
         if not os.path.exists(self._db_path):
             raise FileNotFoundError(f"SQLite database not found: {self._db_path}")
-        self._conn = sqlite3.connect(f"file:{self._db_path}?mode=ro", uri=True)
+        self._conn = sqlite3.connect(
+            f"file:{self._db_path}?mode=ro",
+            uri=True,
+            check_same_thread=False,
+        )
         self._conn.row_factory = sqlite3.Row
 
     def close(self) -> None:
