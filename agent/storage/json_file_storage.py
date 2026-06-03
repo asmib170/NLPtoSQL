@@ -28,11 +28,8 @@ class JsonFileThreadIndex(ThreadIndexStorage):
                        Defaults to agent/data/threads/.
         """
         if not directory:
-            directory = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                "data",
-                "threads",
-            )
+            from utils import THREADS_DIR
+            directory = THREADS_DIR
         self._directory = directory
         self._lock = threading.Lock()
         os.makedirs(self._directory, exist_ok=True)

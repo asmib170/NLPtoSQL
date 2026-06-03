@@ -131,7 +131,7 @@ def generate_sql(question: str, relevant_tables: str = "") -> str:
         "instruction": (
             "Generate a valid SQLite SELECT statement that answers the question below. "
             "Use only the tables and columns defined in the schema. "
-            "Always use table aliases. Limit results to 100 rows unless the question asks for all. "
+            f"Always use table aliases. Limit results to {MAX_DISPLAY_ROWS} rows unless the question asks for all. "
             "Return ONLY the SQL — no markdown, no explanation in the sql field."
         ),
         "question": question,
@@ -180,35 +180,37 @@ def execute_sql(sql: str) -> str:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        # Get total count without loading all rows
-        count_sql = f"SELECT COUNT(*) FROM ({sql})"
         try:
-            cur.execute(count_sql)
-            total_count = cur.fetchone()[0]
-        except sqlite3.Error:
-            total_count = -1  # Count failed, still return data
+            # Get total count without loading all rows
+            count_sql = f"SELECT COUNT(*) FROM ({sql})"
+            try:
+                cur.execute(count_sql)
+                total_count = cur.fetchone()[0]
+            except sqlite3.Error:
+                total_count = -1  # Count failed, still return data
 
-        # Fetch only the display rows
-        limited_sql = f"{sql} LIMIT {MAX_DISPLAY_ROWS}"
-        # Only add LIMIT if not already present
-        if "LIMIT" in sql.upper():
-            limited_sql = sql
-        cur.execute(limited_sql)
-        rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description] if cur.description else []
-        conn.close()
+            # Fetch only the display rows
+            limited_sql = f"{sql} LIMIT {MAX_DISPLAY_ROWS}"
+            # Only add LIMIT if not already present
+            if "LIMIT" in sql.upper():
+                limited_sql = sql
+            cur.execute(limited_sql)
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description] if cur.description else []
 
-        results = [dict(zip(columns, row)) for row in rows]
-        if total_count < 0:
-            total_count = len(results)
+            results = [dict(zip(columns, row)) for row in rows]
+            if total_count < 0:
+                total_count = len(results)
 
-        output = {
-            "total_row_count": total_count,
-            "displayed_rows": len(results),
-            "columns": columns,
-            "rows": results,
-        }
-        return json.dumps(output, indent=2, default=str)
+            output = {
+                "total_row_count": total_count,
+                "displayed_rows": len(results),
+                "columns": columns,
+                "rows": results,
+            }
+            return json.dumps(output, indent=2, default=str)
+        finally:
+            conn.close()
 
     except sqlite3.Error as e:
         return json.dumps({"error": f"SQL error: {str(e)}"})
@@ -249,7 +251,7 @@ def summarize_results(question: str, sql: str, results_json: str) -> str:
 
     rows = data.get("rows", [])
     columns = data.get("columns", [])
-    row_count = data.get("row_count", 0)
+    row_count = data.get("total_row_count", data.get("row_count", 0))
 
     if row_count == 0:
         return json.dumps({

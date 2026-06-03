@@ -87,11 +87,8 @@ class LocalChartStorage(ChartStorage):
                        Defaults to agent/data/charts/.
         """
         if not directory:
-            directory = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                "data",
-                "charts",
-            )
+            from utils import CHARTS_DIR
+            directory = CHARTS_DIR
         self._directory = Path(directory)
         self._directory.mkdir(parents=True, exist_ok=True)
 

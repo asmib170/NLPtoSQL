@@ -1,0 +1,86 @@
+.wrapper {
+  overflow-x: auto;
+  margin: 0.5rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.csvBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.csvBtn:hover {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+.table th, .table td {
+  padding: 0.5rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.sortableHeader:hover {
+  background: var(--hover);
+}
+
+.sortIcon {
+  display: inline-flex;
+  margin-left: 0.3rem;
+  opacity: 0.4;
+  vertical-align: middle;
+}
+
+.sortableHeader:hover .sortIcon {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: var(--hover); }
+.table a { color: var(--accent); text-decoration: none; }
+.table a:hover { text-decoration: underline; }

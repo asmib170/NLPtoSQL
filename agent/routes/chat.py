@@ -6,17 +6,20 @@ from typing import AsyncIterator
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from utils.session_factory import get_agent_for_session
+from utils.session_factory import create_session_agent
 from utils import MODEL_ID, PRICING_INPUT_PER_TOKEN, PRICING_OUTPUT_PER_TOKEN
 
 router = APIRouter(prefix="/api")
 
+# Maximum allowed message length (chars)
+MAX_MESSAGE_LENGTH = 10000
+
 
 class ChatRequest(BaseModel):
     """Request body for the /api/chat endpoint."""
-    message: str
+    message: str = Field(..., max_length=MAX_MESSAGE_LENGTH)
     thread_id: str = ""
 
 
@@ -50,7 +53,7 @@ async def _sse_generator(message: str, thread_id: str) -> AsyncIterator[str]:
     last_tool_name = None
     first_tool = True
 
-    session_agent = get_agent_for_session(thread_id or "default")
+    session_agent = create_session_agent(thread_id or "default")
 
     try:
         async for event in session_agent.stream_async(message):

@@ -7,6 +7,7 @@ import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { User, Bot, AlertCircle, ChevronDown, ChevronRight, Brain, Code2, Wrench, Info, Sparkles, CircleUser, Download } from 'lucide-react'
 import type { Message } from '../types'
 import { exportToMarkdown, exportToHtml, downloadFile } from '../utils/exportUtils'
+import { SortableTable } from './SortableTable'
 import styles from './MessageBubble.module.css'
 
 interface MessageBubbleProps {
@@ -195,11 +196,7 @@ export function MessageBubble({ message, theme, onSendSuggestion }: MessageBubbl
       )
     },
     table({ children }: Record<string, unknown>) {
-      return (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>{children as React.ReactNode}</table>
-        </div>
-      )
+      return <SortableTable>{children as React.ReactNode}</SortableTable>
     },
     img({ src, alt }: Record<string, unknown>) {
       const imgSrc = src as string

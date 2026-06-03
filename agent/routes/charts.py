@@ -1,9 +1,8 @@
 """Chart serving endpoint — serves generated PNG chart images."""
 
-import os
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from tools import chart_storage
@@ -20,18 +19,22 @@ async def serve_chart(filename: str):
 
     Validates that the resolved path stays within the charts directory
     to prevent path traversal attacks.
+
+    Raises:
+        HTTPException 400: If filename contains path traversal characters.
+        HTTPException 404: If chart file doesn't exist.
     """
     # Reject filenames with path separators or traversal
     if ".." in filename or "/" in filename or "\\" in filename:
-        return {"error": "Invalid filename"}
+        raise HTTPException(status_code=400, detail="Invalid filename")
 
     filepath = chart_storage.get_path(filename)
     if not filepath:
-        return {"error": "Chart not found"}
+        raise HTTPException(status_code=404, detail="Chart not found")
 
     # Verify resolved path is within charts directory
     resolved = str(Path(filepath).resolve())
     if not resolved.startswith(_CHARTS_DIR_RESOLVED):
-        return {"error": "Invalid filename"}
+        raise HTTPException(status_code=400, detail="Invalid filename")
 
     return FileResponse(filepath, media_type="image/png")

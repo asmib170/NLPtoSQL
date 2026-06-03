@@ -6,7 +6,6 @@ to understand the database structure without hardcoding table or column names.
 
 import sqlite3
 import json
-import os
 from typing import Any
 
 # Default DB path — loaded from central config
@@ -14,17 +13,16 @@ from utils import DB_PATH as DEFAULT_DB_PATH
 
 
 def _get_connection(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
-    """Return a read-write sqlite3 connection with row_factory and foreign keys enabled.
+    """Return a read-only sqlite3 connection with row_factory set.
 
     Args:
         db_path: Path to the SQLite database file.
 
     Returns:
-        A sqlite3.Connection configured with sqlite3.Row row_factory.
+        A sqlite3.Connection in read-only mode with sqlite3.Row row_factory.
     """
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 

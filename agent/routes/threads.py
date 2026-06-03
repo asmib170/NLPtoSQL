@@ -5,10 +5,10 @@ import os
 import shutil
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from utils import TITLE_MAX_WORDS, SUMMARY_MAX_WORDS, SESSIONS_DIR, TITLE_GEN_MAX_TOKENS
+from utils import TITLE_MAX_WORDS, SUMMARY_MAX_WORDS, SESSIONS_DIR, TITLE_GEN_MAX_TOKENS, CONVERSATION_WINDOW_SIZE
 from utils import converse_json
 from storage import JsonFileThreadIndex, ThreadMeta
 
@@ -109,7 +109,7 @@ async def get_thread(thread_id: str) -> dict:
     """Return thread metadata plus messages from session storage."""
     thread = thread_index.get_thread(thread_id)
     if not thread:
-        return {"error": "Thread not found"}
+        raise HTTPException(status_code=404, detail="Thread not found")
     messages = _load_session_messages(thread_id)
     result = thread.to_dict()
     result["messages"] = messages
@@ -130,7 +130,7 @@ async def update_thread_endpoint(thread_id: str, request: UpdateThreadRequest) -
     """Update thread metadata (title, summary, message_count)."""
     thread = thread_index.get_thread(thread_id)
     if not thread:
-        return {"error": "Thread not found"}
+        raise HTTPException(status_code=404, detail="Thread not found")
     if request.title is not None:
         thread.title = request.title
     if request.summary is not None:
@@ -162,9 +162,13 @@ def generate_title(request: GenerateTitleRequest) -> dict:
     if not messages:
         return {"title": "New Chat", "summary": ""}
 
+    # Use only the last N messages (same window as the conversation manager)
+    # to keep the title relevant to recent context without excessive I/O
+    recent_messages = messages[-CONVERSATION_WINDOW_SIZE * 2:] if len(messages) > CONVERSATION_WINDOW_SIZE * 2 else messages
+
     conversation = "\n".join(
         f"{m['role'].upper()}: {m['content'][:150]}"
-        for m in messages
+        for m in recent_messages
     )
 
     system_prompt = (
@@ -192,4 +196,5 @@ def generate_title(request: GenerateTitleRequest) -> dict:
     # Fallback
     first_user = next((m["content"] for m in messages if m["role"] == "user"), "Chat")
     return {"title": first_user[:30], "summary": ""}
+
 

@@ -69,6 +69,7 @@ THINKING_BUDGET_TOKENS = int(_provider.get("THINKING_BUDGET_TOKENS", 4096))
 SESSION_BACKEND = _provider.get("SESSION_BACKEND", "file")
 AGENTCORE_MEMORY_ID = _provider.get("AGENTCORE_MEMORY_ID", "")
 AWS_REGION = _provider.get("AWS_REGION", "us-west-2")
+CONVERSATION_WINDOW_SIZE = int(_provider.get("CONVERSATION_WINDOW_SIZE", 5))
 
 # ------------------------------------------------------------------ #
 # SQL tool

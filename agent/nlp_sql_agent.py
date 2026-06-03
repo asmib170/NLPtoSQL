@@ -22,7 +22,7 @@ from strands.models import BedrockModel
 from tools.sql_tools import verify_question, generate_sql, execute_sql, summarize_results
 from tools.chart_tool import generate_chart
 from tools.db_inspector import get_schema_as_text, get_table_names
-from utils import MODEL_ID, MODEL_MAX_TOKENS, THINKING_BUDGET_TOKENS
+from utils import MODEL_ID, MODEL_MAX_TOKENS, THINKING_BUDGET_TOKENS, MAX_DISPLAY_ROWS
 
 # ------------------------------------------------------------------ #
 # Model
@@ -65,7 +65,7 @@ Tables available: {_table_list}
    - Use only tables and columns from the schema above
    - Always use table aliases (e.g. o for orders, u for users)
    - JOIN tables using their foreign key relationships
-   - Add ORDER BY and LIMIT 50 unless the user asks for all rows
+   - Add ORDER BY and LIMIT {MAX_DISPLAY_ROWS} unless the user asks for all rows
    - SELECT only — never DROP, DELETE, UPDATE, INSERT
 
 3. Call `execute_sql` with the SQL you generated.

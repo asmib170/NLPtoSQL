@@ -4,27 +4,28 @@ An AI-powered conversational interface that lets users query databases using nat
 
 ## What It Does
 
-This project is a **database-agnostic** AI assistant. While this v1 ships with a demo e-commerce SQLite database, it works with **any SQLite database** you point it to. Simply replace the database file path in the config and the system automatically:
+This project is a **database-agnostic** AI assistant. While this v1 ships with a demo e-commerce SQLite database, it is designed to work with **any SQL database** (SQLite, PostgreSQL, MySQL, etc.) you connect it to. Simply update the database connection in the config and the system automatically:
 
 - Reads the schema dynamically (tables, columns, relationships)
 - Generates 6 relevant sample questions based on YOUR schema using the LLM
 - Answers any natural language question about YOUR data
 
+> **Note:** This v1 uses SQLite for the demo. To connect other SQL databases (PostgreSQL, MySQL, etc.), you would swap the `sqlite3` calls in `db_inspector.py` and `sql_tools.py` with the appropriate database driver (e.g., `psycopg2`, `mysql-connector`). The agent logic, tools, and UI remain unchanged.
+
 **Core capabilities:**
 - **Natural language to SQL**: Ask questions like "Which customers spent the most last quarter?". The agent verifies the question is answerable, generates SQL, executes it, and returns results with analysis
 - **Automated chart generation**: Produces matplotlib visualizations alongside every query result
-- **Conversation memory**: Multi-turn conversations where the agent remembers context within a session
+- **Conversation memory**: Multi-turn conversations where the agent remembers context within a session (sliding window of last 5 interactions)
 - **Intelligent summaries**: Highlights trends, outliers, and suggests follow-up questions
 - **Voice input**: Speak your questions using in-browser Whisper speech-to-text (no server needed)
 - **Export**: Download responses or full conversations as HTML or Markdown with embedded charts
+- **Sortable tables**: Click column headers to sort, download table data as CSV
 
 ### Connecting Your Own Database
 
-1. Place your SQLite `.db` file anywhere on your machine
-2. Update `agent/utils/config_files/dev.json` — no code changes needed, OR update the `DB_PATH` in the config
-3. Restart the server — the agent reads the schema at startup and adapts automatically
-
-The welcome screen will show 6 LLM-generated sample questions based on your schema, and the agent will query your tables.
+1. Update `DB_PATH` in `agent/utils/config_files/dev.json` — relative to project root or absolute path
+2. Restart the server — the agent reads the schema at startup and adapts automatically
+3. The welcome screen will show 6 LLM-generated sample questions based on your schema
 
 ## Architecture
 
@@ -33,7 +34,7 @@ The welcome screen will show 6 LLM-generated sample questions based on your sche
 ```
 React (Vite + TypeScript)  ←→  FastAPI (SSE streaming)  ←→  Strands Agent  ←→  AWS Bedrock (Claude Sonnet 4.5)
                                                                     ↓
-                                                              SQLite Database
+                                                              SQL Database
 ```
 
 - **Frontend**: React chat interface with dark/light mode, glassmorphism sidebar, resizable panels, streaming responses with markdown/table/chart rendering
@@ -48,14 +49,16 @@ React (Vite + TypeScript)  ←→  FastAPI (SSE streaming)  ←→  Strands Agen
 |---------|---------------|
 | Streaming responses | SSE with thinking/tool/metrics events |
 | Extended thinking | Claude 4.5 with 4096 token reasoning budget |
-| Session memory | Strands FileSessionManager (AgentCore-ready) |
-| Chart generation | LLM generates matplotlib code, executed via subprocess |
+| Session memory | Strands FileSessionManager + SlidingWindowConversationManager |
+| Chart generation | LLM generates matplotlib code, executed via subprocess (Windows) or python_repl (Linux) |
 | Voice input | Whisper tiny.en running in browser via WebGPU/WASM |
-| Multi-thread chat | UUID4 session IDs, thread history with LLM-generated titles |
-| Export | HTML (with embedded base64 charts) and Markdown |
-| Dark/light mode | CSS variables with theme toggle |
+| Multi-thread chat | UUID4 session IDs, thread history with LLM-generated titles & summaries |
+| Export | HTML and Markdown with embedded base64 charts |
+| Sortable tables | Click-to-sort columns + CSV download |
+| Dark/light mode | CSS variables with animated theme toggle |
 | Config management | JSON config files (dev) → AWS AppConfig (prod) |
 | TTL cleanup | Auto-deletes old sessions, threads, and charts |
+| Input validation | Message length limits, path traversal protection, read-only DB |
 
 ## Prerequisites
 
@@ -146,35 +149,55 @@ This starts:
 - **Frontend** on `http://localhost:3000` (React chat UI)
 - Opens your browser automatically
 
-### Using Your Own Database
-
-To point the agent at a different SQLite database:
-1. Edit `agent/utils/config_files/dev.json`
-2. The `DB_PATH` is automatically resolved from the project root or set it as an absolute path
-3. Restart the backend — the agent reads the new schema and generates appropriate sample questions
-
-Opens at [http://localhost:3000](http://localhost:3000) with backend on port 8000.
-
 ## Project Structure
 
 ```
 NLPtoSQL/
-├── agent/                   # Python backend
-│   ├── server.py            # FastAPI entry point
-│   ├── nlp_sql_agent.py     # Agent model + system prompt
-│   ├── tools/               # Agent tools (SQL, chart, DB inspector)
-│   ├── routes/              # API endpoints (chat, threads, context, charts)
-│   ├── storage/             # Persistence interfaces (threads, charts)
-│   ├── utils/               # Config, LLM utils, session factory, cleanup
-│   └── data/                # Runtime data (sessions, threads, charts)
-├── webui/                   # React frontend
-│   ├── src/components/      # UI components (ChatWindow, MessageBubble, etc.)
-│   ├── src/hooks/           # State management (useThreads, useSpeechToText)
-│   ├── src/api/             # Backend service layer
-│   └── src/utils/           # Export utilities
-├── prereq/                  # Database setup scripts
-├── docs/                    # Architecture diagrams and documentation
-└── start.bat               # One-click launcher
+├── agent/                       # Python backend
+│   ├── server.py                # FastAPI entry point (slim — mounts routers)
+│   ├── nlp_sql_agent.py         # Agent model config + system prompt
+│   ├── tools/                   # Agent tools
+│   │   ├── sql_tools.py         # verify_question, generate_sql, execute_sql, summarize_results
+│   │   ├── chart_tool.py        # generate_chart (matplotlib via subprocess/repl)
+│   │   └── db_inspector.py      # Schema introspection (reads sqlite_master)
+│   ├── routes/                  # FastAPI route modules
+│   │   ├── chat.py              # POST /api/chat (SSE streaming)
+│   │   ├── threads.py           # /api/threads CRUD + title generation
+│   │   ├── context.py           # GET /api/context (sample questions)
+│   │   ├── charts.py            # GET /api/charts/{filename}
+│   │   └── health.py            # GET /health
+│   ├── utils/                   # Configuration and helpers
+│   │   ├── config.py            # Central config (loads from provider)
+│   │   ├── config_provider.py   # Interface: File / Env / AWS AppConfig
+│   │   ├── config_files/        # dev.json, prod.json.example
+│   │   ├── session_factory.py   # Creates session-aware agents
+│   │   ├── llm_utils.py         # Direct boto3 Converse API calls
+│   │   └── cleanup.py           # TTL-based data cleanup
+│   ├── storage/                 # Persistence interfaces
+│   │   ├── base.py              # ThreadIndexStorage interface
+│   │   ├── json_file_storage.py # Local JSON implementation
+│   │   └── chart_storage.py     # ChartStorage interface + LocalChartStorage
+│   └── data/                    # Runtime data (gitignored)
+│       ├── sessions/            # Strands FileSessionManager data
+│       ├── threads/             # Thread metadata JSON files
+│       └── charts/              # Generated chart PNGs
+├── webui/                       # React frontend
+│   ├── src/
+│   │   ├── components/          # UI (ChatWindow, MessageBubble, SortableTable, etc.)
+│   │   ├── hooks/               # useThreads, useSpeechToText, useTheme
+│   │   ├── api/                 # agentService.ts (backend abstraction)
+│   │   ├── utils/               # exportUtils.ts (HTML/MD export)
+│   │   └── themes.css           # Central theme variables (light/dark)
+│   ├── public/                  # favicon.svg
+│   └── index.html
+├── prereq/                      # Database setup scripts
+│   ├── 01_create_db.py          # Creates tables
+│   ├── 02_populate_db.py        # Inserts sample data
+│   └── 03_verify_db.py          # Prints summary
+├── docs/                        # Architecture diagram + documentation
+├── start.bat                    # One-click launcher (Windows)
+├── start.ps1                    # PowerShell launcher
+└── requirements.txt             # Python dependencies
 ```
 
 ## Production Migration (AWS AgentCore)
@@ -189,6 +212,7 @@ The codebase is designed for a clean migration to AWS:
 | Charts | Local filesystem | S3 + CloudFront |
 | Config | config/dev.json | AWS AppConfig |
 | Frontend | Vite dev server | S3 + CloudFront |
+| Database | SQLite (local) | RDS / Aurora |
 
 Migration steps:
 1. Set `APP_ENV=prod` and `SESSION_BACKEND=agentcore`
@@ -198,7 +222,8 @@ Migration steps:
 
 ## Tech Stack
 
-- **Agent**: Strands Agents SDK, Amazon Bedrock (Claude Sonnet 4.5)
+- **Agent**: Strands Agents SDK, Amazon Bedrock (Claude Sonnet 4.5 with Extended Thinking)
 - **Backend**: Python, FastAPI, SQLite, boto3
-- **Frontend**: React 18, TypeScript, Vite, react-markdown, Whisper.js
+- **Frontend**: React 18, TypeScript, Vite, react-markdown, Whisper.js (Hugging Face Transformers)
 - **Tools**: matplotlib (charts), graphviz (architecture diagrams)
+- **Storage**: Pluggable interfaces (FileSessionManager, JsonFileThreadIndex, LocalChartStorage)

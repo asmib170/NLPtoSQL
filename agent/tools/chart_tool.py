@@ -9,9 +9,9 @@ Charts are saved as PNG files and served via the FastAPI server.
 import json
 import os
 import platform
+import re
 import subprocess
 import tempfile
-import time
 from pathlib import Path
 
 from strands import Agent, tool
@@ -29,7 +29,11 @@ if not IS_WINDOWS:
         pass  # Fallback to subprocess
 
 # Directory to store generated charts — from central config
-from utils import CHARTS_DIR as _CHARTS_DIR_STR, CHART_MODEL_ID, CHART_MODEL_MAX_TOKENS, VENV_PYTHON, CHART_SUBPROCESS_TIMEOUT, CHART_MIN_ROWS
+from utils import (
+    CHARTS_DIR as _CHARTS_DIR_STR, CHART_MODEL_ID, CHART_MODEL_MAX_TOKENS,
+    VENV_PYTHON, CHART_SUBPROCESS_TIMEOUT, CHART_MIN_ROWS,
+    CHART_BG_COLOR, CHART_TEXT_COLOR, CHART_COLOR_PALETTE, CHART_DPI,
+)
 CHART_DIR = Path(_CHARTS_DIR_STR)
 
 # Chart storage instance — swap to S3ChartStorage for production
@@ -42,8 +46,12 @@ _chart_model = BedrockModel(
     max_tokens=CHART_MODEL_MAX_TOKENS,
 )
 
-# System prompt differs slightly based on execution method
-_CHART_SYSTEM_PROMPT_REPL = """You are a chart visualization expert. When asked to create a chart:
+# System prompts built from config values
+_palette_str = str(CHART_COLOR_PALETTE)
+
+
+def _get_chart_prompt_repl() -> str:
+    return f"""You are a chart visualization expert. When asked to create a chart:
 
 1. Write Python code using matplotlib
 2. Use the python_repl tool to execute the code
@@ -52,9 +60,9 @@ _CHART_SYSTEM_PROMPT_REPL = """You are a chart visualization expert. When asked 
 RULES:
 - ALWAYS start code with: import matplotlib; matplotlib.use('Agg')
 - Then import matplotlib.pyplot as plt
-- Use dark theme: plt.rcParams['figure.facecolor'] = '#1a2332', text color '#ecf0f1'
-- Colors: ['#818cf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#22d3ee']
-- Save with dpi=100, bbox_inches='tight'
+- Use dark theme: plt.rcParams['figure.facecolor'] = '{CHART_BG_COLOR}', text color '{CHART_TEXT_COLOR}'
+- Colors: {_palette_str}
+- Save with dpi={CHART_DPI}, bbox_inches='tight'
 - Embed the full data as a Python literal in the code
 - Do NOT use plt.show()
 - Choose the most appropriate chart type for the data
@@ -62,15 +70,17 @@ RULES:
 - After success, respond with ONLY: "Chart saved successfully"
 """
 
-_CHART_SYSTEM_PROMPT_SUBPROCESS = """You are a chart visualization expert.
+
+def _get_chart_prompt_subprocess() -> str:
+    return f"""You are a chart visualization expert.
 Output ONLY executable Python code — no explanation, no markdown fences, no commentary.
 
 RULES:
 - ALWAYS start with: import matplotlib; matplotlib.use('Agg')
 - Then import matplotlib.pyplot as plt
-- Use dark theme: plt.rcParams['figure.facecolor'] = '#1a2332', text color '#ecf0f1'
-- Colors: ['#818cf8', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#22d3ee']
-- Save with dpi=100, bbox_inches='tight'
+- Use dark theme: plt.rcParams['figure.facecolor'] = '{CHART_BG_COLOR}', text color '{CHART_TEXT_COLOR}'
+- Colors: {_palette_str}
+- Save with dpi={CHART_DPI}, bbox_inches='tight'
 - Embed the full data as a Python literal in the code
 - Do NOT use plt.show()
 - Save to the EXACT file path specified in the user message
@@ -107,12 +117,12 @@ def generate_chart(question: str, sql: str, results_json: str) -> str:
     columns = data.get("columns", [])
 
     # Need at least 2 rows for a meaningful chart
-    if len(rows) < 2:
-        return json.dumps({"success": False, "filename": None, "message": "Not enough data for a chart (need at least 2 rows)."})
+    if len(rows) < CHART_MIN_ROWS:
+        return json.dumps({"success": False, "filename": None, "message": f"Not enough data for a chart (need at least {CHART_MIN_ROWS} rows)."})
 
-    # Generate unique filename
-    timestamp = int(time.time())
-    filename = f"chart_{timestamp}.png"
+    # Generate unique filename (UUID avoids collisions for concurrent requests)
+    import uuid
+    filename = f"chart_{uuid.uuid4().hex[:12]}.png"
     filepath = Path(chart_storage.get_save_path(filename))
 
     # Prepare data for the prompt (all rows from execute_sql, already capped at MAX_DISPLAY_ROWS)
@@ -158,7 +168,7 @@ def _execute_via_repl(prompt: str, filepath: Path, filename: str) -> str:
 
     chart_agent = Agent(
         model=_chart_model,
-        system_prompt=_CHART_SYSTEM_PROMPT_REPL,
+        system_prompt=_get_chart_prompt_repl(),
         tools=[python_repl],
         callback_handler=None,
     )
@@ -193,7 +203,7 @@ def _execute_via_subprocess(prompt: str, filepath: Path, filename: str) -> str:
     """
     chart_agent = Agent(
         model=_chart_model,
-        system_prompt=_CHART_SYSTEM_PROMPT_SUBPROCESS,
+        system_prompt=_get_chart_prompt_subprocess(),
         tools=[],
         callback_handler=None,
     )
@@ -222,7 +232,7 @@ def _execute_via_subprocess(prompt: str, filepath: Path, filename: str) -> str:
             [python_exe, temp_path],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=CHART_SUBPROCESS_TIMEOUT,
             check=False,
         )
         if proc.returncode != 0:
@@ -261,8 +271,6 @@ def _extract_python_code(text: str) -> str | None:
     Returns:
         Extracted Python code string, or None if no code could be found.
     """
-    import re
-
     # Try to find code in markdown fences
     match = re.search(r"```(?:python)?\s*\n(.*?)```", text, re.DOTALL)
     if match:
@@ -285,3 +293,4 @@ def _extract_python_code(text: str) -> str | None:
         return '\n'.join(lines[code_start:]).strip()
 
     return None
+

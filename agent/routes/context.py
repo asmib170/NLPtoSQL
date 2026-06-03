@@ -9,6 +9,9 @@ from utils import converse_json, SAMPLE_QUESTIONS_COUNT, CONTEXT_GEN_MAX_TOKENS
 
 router = APIRouter(prefix="/api")
 
+# Cache the context result — schema doesn't change at runtime
+_cached_context: dict | None = None
+
 
 def _generate_ui_context() -> dict:
     """Generate UI-facing content (description + 6 sample questions) from the DB schema.
@@ -78,6 +81,10 @@ Rules for the questions:
 def context() -> dict:
     """Return UI context: description and sample questions (LLM-generated).
 
+    Result is cached after the first call — schema doesn't change at runtime.
     Uses def (not async def) so FastAPI runs it in a threadpool.
     """
-    return _generate_ui_context()
+    global _cached_context
+    if _cached_context is None:
+        _cached_context = _generate_ui_context()
+    return _cached_context

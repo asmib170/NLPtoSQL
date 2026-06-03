@@ -11,6 +11,7 @@
   "_comment_session": "Session management — 'file' for local FileSessionManager, 'agentcore' for AWS AgentCore Memory",
   "SESSION_BACKEND": "file",
   "SESSIONS_DIR": "agent/data/sessions",
+  "CONVERSATION_WINDOW_SIZE": 5,
   "AGENTCORE_MEMORY_ID": "",
   "AWS_REGION": "us-west-2",
 

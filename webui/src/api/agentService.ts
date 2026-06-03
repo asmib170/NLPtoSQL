@@ -110,7 +110,7 @@ export function streamMessage(message: string, callbacks: StreamCallbacks, threa
 /** Simple health check — resolves true if the backend is reachable. */
 export async function checkHealth(): Promise<boolean> {
   try {
-    const res = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(8000) })
     return res.ok
   } catch {
     return false

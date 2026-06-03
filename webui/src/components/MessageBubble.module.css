@@ -217,13 +217,18 @@
 .resultsSection p:last-child { margin-bottom: 0; }
 
 .resultsSection h1, .resultsSection h2, .resultsSection h3 {
-  margin: 0.75rem 0 0.35rem;
+  margin: 1rem 0 0.5rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--accent);
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
 }
 .resultsSection h1 { font-size: 1.1rem; }
 .resultsSection h2 { font-size: 1rem; }
-.resultsSection h3 { font-size: 0.92rem; }
+.resultsSection h3 { font-size: 0.9rem; }
+.resultsSection h1:first-child, .resultsSection h2:first-child, .resultsSection h3:first-child {
+  margin-top: 0;
+}
 
 .resultsSection ul, .resultsSection ol {
   padding-left: 1.4rem;
@@ -245,6 +250,9 @@
   position: relative;
   display: inline-block;
   margin: 0.5rem 0;
+  background: #1a2332;
+  border-radius: 10px;
+  padding: 0.5rem;
 }
 
 .chartImage {

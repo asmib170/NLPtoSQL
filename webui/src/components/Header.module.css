@@ -5,10 +5,12 @@
   position: relative;
   padding: 0 1.5rem;
   height: 72px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  border-bottom: 1px solid var(--header-border);
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   flex-shrink: 0;
-  backdrop-filter: blur(8px);
+  box-shadow: var(--header-shadow);
 }
 
 .brand {
