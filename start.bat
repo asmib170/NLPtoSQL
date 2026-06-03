@@ -8,7 +8,7 @@ echo.
 set PATH=%PATH%;%ProgramFiles%\nodejs;%APPDATA%\npm
 
 :: ---- Prerequisites ----
-echo [1/5] Checking prerequisites...
+echo [1/6] Checking prerequisites...
 
 :: Create venv if missing
 if not exist "%~dp0.venv" (
