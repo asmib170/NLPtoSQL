@@ -2,7 +2,7 @@
 
 Workflow enforced via system prompt:
   1. verify_question   — confirm the DB can answer the question
-  2. generate_sql      — produce a SQLite SELECT statement
+  2. generate_sql      — produce a SQL SELECT statement (dialect-aware)
   3. execute_sql       — run the statement and return results
   4. summarize_results — analyse results and surface insights
   5. generate_chart    — create a matplotlib visualization of the results
@@ -21,7 +21,7 @@ from strands.models import BedrockModel
 
 from tools.sql_tools import verify_question, generate_sql, execute_sql, summarize_results
 from tools.chart_tool import generate_chart
-from tools.db_inspector import get_schema_as_text, get_table_names
+from db_adapters import get_db_adapter
 from utils import MODEL_ID, MODEL_MAX_TOKENS, THINKING_BUDGET_TOKENS, MAX_DISPLAY_ROWS
 
 # ------------------------------------------------------------------ #
@@ -42,10 +42,12 @@ model = BedrockModel(
 # ------------------------------------------------------------------ #
 # System prompt — built dynamically from the live schema
 # ------------------------------------------------------------------ #
-_schema_text = get_schema_as_text()
-_table_list  = ", ".join(get_table_names())
+_adapter     = get_db_adapter()
+_schema_text = _adapter.get_schema_as_text()
+_table_list  = ", ".join(_adapter.get_table_names())
+_sql_dialect = _adapter.get_sql_dialect().upper()
 
-SYSTEM_PROMPT = f"""You are an expert NLP-to-SQL assistant for the DemoECommerceDB SQLite database.
+SYSTEM_PROMPT = f"""You are an expert NLP-to-SQL assistant for the {_adapter.get_database_name()} {_sql_dialect} database.
 
 ## Your database
 Tables available: {_table_list}
@@ -60,8 +62,8 @@ Tables available: {_table_list}
    - If "answerable": true, continue.
 
 2. Call `generate_sql` with the question and relevant_tables.
-   Then produce a valid SQLite SELECT statement following these rules:
-   - Valid SQLite syntax only
+   Then produce a valid {_sql_dialect} SELECT statement following these rules:
+   - Valid {_sql_dialect} syntax only
    - Use only tables and columns from the schema above
    - Always use table aliases (e.g. o for orders, u for users)
    - JOIN tables using their foreign key relationships

@@ -1,10 +1,8 @@
 """Context endpoint — LLM-generated sample questions and description."""
 
-import os
-
 from fastapi import APIRouter
 
-from tools.db_inspector import get_table_names, get_schema_as_text, DEFAULT_DB_PATH
+from db_adapters import get_db_adapter
 from utils import converse_json, SAMPLE_QUESTIONS_COUNT, CONTEXT_GEN_MAX_TOKENS
 
 router = APIRouter(prefix="/api")
@@ -21,13 +19,14 @@ def _generate_ui_context() -> dict:
     Returns:
         Dict with keys: db_name, description, tables, sample_questions.
     """
-    tables = get_table_names()
-    db_name = os.path.basename(DEFAULT_DB_PATH).replace(".db", "")
-    schema = get_schema_as_text()
+    adapter = get_db_adapter()
+    tables = adapter.get_table_names()
+    db_name = adapter.get_database_name()
+    schema = adapter.get_schema_as_text()
 
     system_prompt = "You are a helpful assistant. Respond only with valid JSON, no markdown."
 
-    prompt = f"""Given the following SQLite database schema, generate exactly {SAMPLE_QUESTIONS_COUNT} sample questions 
+    prompt = f"""Given the following database schema, generate exactly {SAMPLE_QUESTIONS_COUNT} sample questions 
 that a business user might ask about this data. Also generate a one-line description of what 
 this database contains.
 

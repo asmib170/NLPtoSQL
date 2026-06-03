@@ -8,16 +8,10 @@ Provides four Strands @tool functions:
 """
 
 import json
-import sqlite3
-import os
 
 from strands import tool
 
-from .db_inspector import (
-    DEFAULT_DB_PATH as DB_PATH,
-    get_schema_as_text,
-    get_table_names,
-)
+from db_adapters import get_db_adapter
 
 from utils import MAX_DISPLAY_ROWS
 
@@ -28,7 +22,7 @@ from utils import MAX_DISPLAY_ROWS
 @tool
 def verify_question(question: str) -> str:
     """
-    Verify whether the SQLite database schema contains enough information
+    Verify whether the database schema contains enough information
     to answer the user's natural language question.
 
     The tool inspects the database schema (table names, columns, relationships)
@@ -46,7 +40,8 @@ def verify_question(question: str) -> str:
     question_lower = question.lower()
 
     # Build keyword->table map dynamically from actual table names
-    tables = get_table_names()
+    adapter = get_db_adapter()
+    tables = adapter.get_table_names()
     keyword_table_map: dict[str, str] = {}
     for table in tables:
         # map the table name itself and common synonyms
@@ -95,7 +90,7 @@ def verify_question(question: str) -> str:
             "The database may not contain the required data."
         ),
         "relevant_tables": relevant_tables,
-        "schema_summary": f"Tables available: {', '.join(get_table_names())}",
+        "schema_summary": f"Tables available: {', '.join(adapter.get_table_names())}",
     }
     return json.dumps(result, indent=2)
 
@@ -106,8 +101,8 @@ def verify_question(question: str) -> str:
 @tool
 def generate_sql(question: str, relevant_tables: str = "") -> str:
     """
-    Convert a natural language question into a valid SQLite SQL SELECT statement
-    based on the DemoECommerceDB schema.
+    Convert a natural language question into a valid SQL SELECT statement
+    based on the database schema.
 
     The tool returns a JSON object with:
       - "sql": the generated SQL statement (or empty string if not possible)
@@ -122,14 +117,16 @@ def generate_sql(question: str, relevant_tables: str = "") -> str:
     Returns:
         str: JSON string with keys "sql", "explanation", and optionally "error".
     """
-    schema = get_schema_as_text()
+    adapter = get_db_adapter()
+    schema = adapter.get_schema_as_text()
+    dialect = adapter.get_sql_dialect()
 
     # Build a prompt that the agent (LLM) will use to generate SQL.
     # The tool itself returns the schema + question so the agent can
     # produce the SQL in its reasoning step.
     prompt_context = {
         "instruction": (
-            "Generate a valid SQLite SELECT statement that answers the question below. "
+            f"Generate a valid {dialect.upper()} SELECT statement that answers the question below. "
             "Use only the tables and columns defined in the schema. "
             f"Always use table aliases. Limit results to {MAX_DISPLAY_ROWS} rows unless the question asks for all. "
             "Return ONLY the SQL — no markdown, no explanation in the sql field."
@@ -137,6 +134,7 @@ def generate_sql(question: str, relevant_tables: str = "") -> str:
         "question": question,
         "relevant_tables": relevant_tables,
         "schema": schema,
+        "sql_dialect": dialect,
         "output_format": {
             "sql": "<the SQL SELECT statement>",
             "explanation": "<plain English explanation of what the query does>",
@@ -152,14 +150,14 @@ def generate_sql(question: str, relevant_tables: str = "") -> str:
 @tool
 def execute_sql(sql: str) -> str:
     """
-    Execute a SQL SELECT statement against the DemoECommerceDB SQLite database
-    and return the results as a JSON string.
+    Execute a SQL SELECT statement against the database and return the results
+    as a JSON string.
 
     Only SELECT statements are permitted for safety.
     Returns at most MAX_DISPLAY_ROWS rows along with the total row count.
 
     Args:
-        sql (str): A valid SQLite SELECT statement to execute.
+        sql (str): A valid SQL SELECT statement to execute.
 
     Returns:
         str: JSON string with keys "total_row_count", "displayed_rows", "columns", and "rows".
@@ -167,53 +165,26 @@ def execute_sql(sql: str) -> str:
     """
     sql = sql.strip()
 
-    # Safety: only allow SELECT statements
-    if not sql.upper().startswith("SELECT"):
-        return json.dumps({"error": "Only SELECT statements are permitted."})
-
-    if not os.path.exists(DB_PATH):
-        return json.dumps({"error": f"Database not found at: {DB_PATH}"})
-
     try:
-        # Open in read-only mode for safety
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        adapter = get_db_adapter()
+        total_count, columns, results = adapter.execute_query_with_count(
+            sql, limit=MAX_DISPLAY_ROWS
+        )
 
-        try:
-            # Get total count without loading all rows
-            count_sql = f"SELECT COUNT(*) FROM ({sql})"
-            try:
-                cur.execute(count_sql)
-                total_count = cur.fetchone()[0]
-            except sqlite3.Error:
-                total_count = -1  # Count failed, still return data
+        output = {
+            "total_row_count": total_count,
+            "displayed_rows": len(results),
+            "columns": columns,
+            "rows": results,
+        }
+        return json.dumps(output, indent=2, default=str)
 
-            # Fetch only the display rows
-            limited_sql = f"{sql} LIMIT {MAX_DISPLAY_ROWS}"
-            # Only add LIMIT if not already present
-            if "LIMIT" in sql.upper():
-                limited_sql = sql
-            cur.execute(limited_sql)
-            rows = cur.fetchall()
-            columns = [desc[0] for desc in cur.description] if cur.description else []
-
-            results = [dict(zip(columns, row)) for row in rows]
-            if total_count < 0:
-                total_count = len(results)
-
-            output = {
-                "total_row_count": total_count,
-                "displayed_rows": len(results),
-                "columns": columns,
-                "rows": results,
-            }
-            return json.dumps(output, indent=2, default=str)
-        finally:
-            conn.close()
-
-    except sqlite3.Error as e:
-        return json.dumps({"error": f"SQL error: {str(e)}"})
+    except PermissionError as e:
+        return json.dumps({"error": str(e)})
+    except FileNotFoundError as e:
+        return json.dumps({"error": str(e)})
+    except RuntimeError as e:
+        return json.dumps({"error": str(e)})
 
 
 # ------------------------------------------------------------------ #

@@ -1,7 +1,21 @@
 [project]
 name = "nlptosql"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered NLP-to-SQL data assistant"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "strands-agents==1.40.0",
+    "strands-agents-tools==0.5.3",
+    "fastapi>=0.136.0",
+    "uvicorn[standard]>=0.47.0",
+    "boto3>=1.43.0",
+    "matplotlib>=3.10.0",
+    "pydantic>=2.13.0",
+    "sse-starlette>=3.4.0",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg2-binary>=2.9.9"]
+mysql = ["pymysql>=1.1.0"]
+all-db = ["psycopg2-binary>=2.9.9", "pymysql>=1.1.0"]

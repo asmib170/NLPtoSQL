@@ -69,13 +69,15 @@ export function SortableTable({ children }: SortableTableProps) {
     return [...rows].sort((a, b) => {
       const aVal = a[sortCol] ?? ''
       const bVal = b[sortCol] ?? ''
-      // Try numeric comparison
-      const aNum = parseFloat(aVal.replace(/[$,%]/g, ''))
-      const bNum = parseFloat(bVal.replace(/[$,%]/g, ''))
-      if (!isNaN(aNum) && !isNaN(bNum)) {
+      // Try numeric comparison only if the entire value is numeric
+      const aStripped = aVal.replace(/[$,%\s]/g, '')
+      const bStripped = bVal.replace(/[$,%\s]/g, '')
+      const aNum = Number(aStripped)
+      const bNum = Number(bStripped)
+      if (aStripped !== '' && bStripped !== '' && !isNaN(aNum) && !isNaN(bNum)) {
         return sortDir === 'asc' ? aNum - bNum : bNum - aNum
       }
-      // String comparison
+      // String comparison (works correctly for ISO date formats like 2025-12)
       return sortDir === 'asc'
         ? aVal.localeCompare(bVal)
         : bVal.localeCompare(aVal)

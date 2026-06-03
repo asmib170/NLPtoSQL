@@ -10,7 +10,7 @@ This project is a **database-agnostic** AI assistant. While this v1 ships with a
 - Generates 6 relevant sample questions based on YOUR schema using the LLM
 - Answers any natural language question about YOUR data
 
-> **Note:** This v1 uses SQLite for the demo. To connect other SQL databases (PostgreSQL, MySQL, etc.), you would swap the `sqlite3` calls in `db_inspector.py` and `sql_tools.py` with the appropriate database driver (e.g., `psycopg2`, `mysql-connector`). The agent logic, tools, and UI remain unchanged.
+> **Note:** This v1 uses SQLite for the demo. To connect other SQL databases (PostgreSQL, MySQL, etc.), simply set `DB_TYPE` in your config file and provide the connection details. The `db_adapters` package provides ready-to-use adapters for SQLite, PostgreSQL, and MySQL — no code changes required.
 
 **Core capabilities:**
 - **Natural language to SQL**: Ask questions like "Which customers spent the most last quarter?". The agent verifies the question is answerable, generates SQL, executes it, and returns results with analysis
@@ -23,9 +23,55 @@ This project is a **database-agnostic** AI assistant. While this v1 ships with a
 
 ### Connecting Your Own Database
 
-1. Update `DB_PATH` in `agent/utils/config_files/dev.json` — relative to project root or absolute path
-2. Restart the server — the agent reads the schema at startup and adapts automatically
-3. The welcome screen will show 6 LLM-generated sample questions based on your schema
+1. Update `agent/utils/config_files/dev.json` with your database connection:
+
+   **SQLite** (default):
+   ```json
+   {
+     "DB_TYPE": "sqlite",
+     "DB_PATH": "prereq/DemoECommerceDB.db"
+   }
+   ```
+
+   **PostgreSQL** (including RDS / Aurora):
+   ```json
+   {
+     "DB_TYPE": "postgresql",
+     "DB_HOST": "your-host.amazonaws.com",
+     "DB_PORT": 5432,
+     "DB_NAME": "your_database",
+     "DB_USER": "admin",
+     "DB_PASSWORD": "your_password",
+     "DB_SCHEMA": "public"
+   }
+   ```
+
+   **MySQL** (including RDS / Aurora):
+   ```json
+   {
+     "DB_TYPE": "mysql",
+     "DB_HOST": "your-host.amazonaws.com",
+     "DB_PORT": 3306,
+     "DB_NAME": "your_database",
+     "DB_USER": "admin",
+     "DB_PASSWORD": "your_password"
+   }
+   ```
+
+2. Install the required driver (only needed for Postgres/MySQL):
+   ```bash
+   # Option A: using pyproject.toml extras (recommended)
+   uv pip install -e ".[postgres]"   # PostgreSQL
+   uv pip install -e ".[mysql]"      # MySQL
+   uv pip install -e ".[all-db]"     # Both
+
+   # Option B: install directly
+   uv pip install psycopg2-binary    # PostgreSQL
+   uv pip install pymysql            # MySQL
+   ```
+
+3. Restart the server — the agent reads the schema at startup and adapts automatically
+4. The welcome screen will show 6 LLM-generated sample questions based on your schema
 
 ## Architecture
 
@@ -40,13 +86,14 @@ React (Vite + TypeScript)  ←→  FastAPI (SSE streaming)  ←→  Strands Agen
 - **Frontend**: React chat interface with dark/light mode, glassmorphism sidebar, resizable panels, streaming responses with markdown/table/chart rendering
 - **Backend**: FastAPI server with Server-Sent Events for real-time token streaming
 - **Agent**: Strands Agents SDK with 5 tools (verify, generate SQL, execute, summarize, chart), extended thinking, and session-based memory
-- **Database**: SQLite e-commerce demo (9 tables: users, orders, products, shipping, reviews, etc.)
+- **Database**: Pluggable via `db_adapters` — SQLite demo included, PostgreSQL and MySQL ready (9 tables: users, orders, products, shipping, reviews, etc.)
 - **Storage**: Pluggable interfaces for sessions (FileSessionManager → AgentCore Memory), threads (JSON → DynamoDB), charts (local → S3 + CloudFront)
 
 ## Key Features
 
 | Feature | Implementation |
 |---------|---------------|
+| Multi-database support | DatabaseAdapter ABC with SQLite, PostgreSQL, MySQL implementations |
 | Streaming responses | SSE with thinking/tool/metrics events |
 | Extended thinking | Claude 4.5 with 4096 token reasoning budget |
 | Session memory | Strands FileSessionManager + SlidingWindowConversationManager |
@@ -54,7 +101,7 @@ React (Vite + TypeScript)  ←→  FastAPI (SSE streaming)  ←→  Strands Agen
 | Voice input | Whisper tiny.en running in browser via WebGPU/WASM |
 | Multi-thread chat | UUID4 session IDs, thread history with LLM-generated titles & summaries |
 | Export | HTML and Markdown with embedded base64 charts |
-| Sortable tables | Click-to-sort columns + CSV download |
+| Sortable tables | Click-to-sort columns (numeric + date-aware) + CSV download |
 | Dark/light mode | CSS variables with animated theme toggle |
 | Config management | JSON config files (dev) → AWS AppConfig (prod) |
 | TTL cleanup | Auto-deletes old sessions, threads, and charts |
@@ -131,7 +178,11 @@ cd NLPtoSQL
 
 # 2. Create virtual environment and install Python dependencies
 uv venv
-uv pip install -r requirements.txt
+uv pip install -e .
+
+# 2b. (Optional) Install a database driver for Postgres or MySQL
+# uv pip install -e ".[postgres]"   # PostgreSQL / RDS / Aurora
+# uv pip install -e ".[mysql]"      # MySQL / RDS / Aurora
 
 # 3. Install frontend dependencies
 cd webui && npm install && cd ..
@@ -156,10 +207,15 @@ NLPtoSQL/
 ├── agent/                       # Python backend
 │   ├── server.py                # FastAPI entry point (slim — mounts routers)
 │   ├── nlp_sql_agent.py         # Agent model config + system prompt
+│   ├── db_adapters/             # Database abstraction layer
+│   │   ├── base.py              # DatabaseAdapter ABC (unified interface)
+│   │   ├── sqlite_adapter.py    # SQLite implementation
+│   │   ├── postgres_adapter.py  # PostgreSQL / RDS / Aurora implementation
+│   │   ├── mysql_adapter.py     # MySQL / RDS / Aurora implementation
+│   │   └── factory.py           # Creates the right adapter from config
 │   ├── tools/                   # Agent tools
 │   │   ├── sql_tools.py         # verify_question, generate_sql, execute_sql, summarize_results
-│   │   ├── chart_tool.py        # generate_chart (matplotlib via subprocess/repl)
-│   │   └── db_inspector.py      # Schema introspection (reads sqlite_master)
+│   │   └── chart_tool.py        # generate_chart (matplotlib via subprocess/repl)
 │   ├── routes/                  # FastAPI route modules
 │   │   ├── chat.py              # POST /api/chat (SSE streaming)
 │   │   ├── threads.py           # /api/threads CRUD + title generation
@@ -197,7 +253,8 @@ NLPtoSQL/
 ├── docs/                        # Architecture diagram + documentation
 ├── start.bat                    # One-click launcher (Windows)
 ├── start.ps1                    # PowerShell launcher
-└── requirements.txt             # Python dependencies
+├── pyproject.toml               # Project metadata + optional dependency groups
+└── requirements.txt             # Python dependencies (alternative to pyproject.toml)
 ```
 
 ## Production Migration (AWS AgentCore)
@@ -212,7 +269,7 @@ The codebase is designed for a clean migration to AWS:
 | Charts | Local filesystem | S3 + CloudFront |
 | Config | config/dev.json | AWS AppConfig |
 | Frontend | Vite dev server | S3 + CloudFront |
-| Database | SQLite (local) | RDS / Aurora |
+| Database | SQLite (local) | RDS PostgreSQL / Aurora |
 
 Migration steps:
 1. Set `APP_ENV=prod` and `SESSION_BACKEND=agentcore`
@@ -223,7 +280,7 @@ Migration steps:
 ## Tech Stack
 
 - **Agent**: Strands Agents SDK, Amazon Bedrock (Claude Sonnet 4.5 with Extended Thinking)
-- **Backend**: Python, FastAPI, SQLite, boto3
+- **Backend**: Python, FastAPI, SQLite/PostgreSQL/MySQL, boto3
 - **Frontend**: React 18, TypeScript, Vite, react-markdown, Whisper.js (Hugging Face Transformers)
 - **Tools**: matplotlib (charts), graphviz (architecture diagrams)
-- **Storage**: Pluggable interfaces (FileSessionManager, JsonFileThreadIndex, LocalChartStorage)
+- **Storage**: Pluggable interfaces (FileSessionManager, JsonFileThreadIndex, LocalChartStorage, DatabaseAdapter)

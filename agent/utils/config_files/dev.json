@@ -5,7 +5,8 @@
   "THINKING_BUDGET_TOKENS": 4096,
   "CHART_MODEL_MAX_TOKENS": 4096,
 
-  "_comment_database": "Path to the SQLite database file — relative to project root or absolute path",
+  "_comment_database": "Database configuration — DB_TYPE can be 'sqlite', 'postgresql', or 'mysql'",
+  "DB_TYPE": "sqlite",
   "DB_PATH": "prereq/DemoECommerceDB.db",
 
   "_comment_session": "Session management — 'file' for local FileSessionManager, 'agentcore' for AWS AgentCore Memory",
